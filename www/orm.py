@@ -1,86 +1,85 @@
-#!C:\Users\Evol\Desktop\python\webapp-python
-#-*- coding: utf-8 -*-
-
+# -*- coding: utf-8 -*-
 import aiomysql
 import logging
 import asyncio
 
-__author__  = 'Lu Sunping'
+__author__ = 'xueqian'
 
-#¼ÇÂ¼²Ù×÷ÈÕÖ¾
-def log(sql, args=()):
-    logging.info('SQL: %s' % sql)
-	
-#´´½¨Á¬½Ó³Ø£¬±ÜÃâÆµ·±µÄ´ò¿ª»ò¹Ø±ÕÊı¾İ¿âÁ¬½Ó
-async def create_pool(loop, **kw):
-	logging.info("create database connecting pool...")
-	global __pool
-	#µ÷ÓÃÒ»¸ö×ÓĞ­³ÌÀ´´´½¨È«¾ÖÁ¬½Ó³Ø£¬create_pool·µ»ØÒ»¸öPoolÊµÀı¶ÔÏó
-	__pool = await aiomysql.create_pool(
-	#»ù±¾µÄÁ¬½ÓÊôĞÔÉèÖÃ
-		host  		= kw.get('host','localhost'),	#Êı¾İ¿â·şÎñÆ÷Î»ÖÃ£¬ ÉèÖÃÎª±¾µØ
-		port 		= kw.get('port',3306),			#MySql¶Ë¿ÚºÅ
-		user 		= kw['user'],					#µÇÂ½ÓÃ»§Ãû
-		password 	= kw['password'],				#µÇÂ½ÃÜÂë
-		db 			= kw['db'],						#µÇÂ½µÄÊı¾İ¿â
-		charset 	= kw.get('cahrset','utf8'),		#ÉèÖÃ±àÂëÄÚÈİ
-		autocommit 	= kw.get('autocommit',True),	#×Ô¶¯Ìá½»£¬ Ä¬ÈÏÎªfalse
-		maxsize 	= kw.get('maxsize',10),			#×î´óÁ¬½Ó³Ø´óĞ¡
-		minsize 	= kw.get('minsize',1),			#×îĞ¡Á¬½Ó´Ê´óĞ¡
-		loop = loop									#ÉèÖÃÏûÏ¢Ñ­»·
-	)
-	
-#selectÓï¾ä ·µ»ØÊı¾İ¼¯
-async def select(sql, args, size=None):
-	#sql : sqlÓï¾ä
-	#args: ÌîÈësqlµÄ²ÎÊı£¬listÀàĞÍ£¬Èç['20160110','lixue']
-	#size: È¡¶àÉÙĞĞ¼ÇÂ¼
-	log(sql, args)
-	global __pool
-	#´ÓÁ¬½Ó³Ø»ñÈ¡Ò»¸öÁ¬½Ó
-	async with __pool.get() as conn: #python 3.5 µÄÓÃ·¨ 		//with...as...µÄ×÷ÓÃ¾ÍÊÇtry...exception
-		async with conn.cursor(aiomysql.DictCursor) as cur:			#´ò¿ªÒ»¸öDictCursor£¬ÒÔdictµÄĞÎÊ½·µ»Ø½á¹û×ø±ê
-		await cur.execute(sql.replace('?','%s'), args or ())		#sqlµÄÕ¼Î»·ûÊÇ£¿£¬¶ømysqlµÄÕ¼Î»·ûÊÇ%s  Ìæ»»
-		if size:	#Èç¹ûsize²»Îª¿Õ£¬ÔòÈ¡Ò»¶¨Á¿µÄ½á¹û¼¯
-			rs = await cur.ferchmany(size)
-		else:		#Ä¬ÈÏÈ¡È«²¿½á¹û¼¯
-			rs = await cur.fetchall()
-		yield from cur.close()
-		logging.info('rows return: %s' % len(rs))
-		return rs
-		
-#insert,update,delete ---> excute
-async def excute(sql, args, autocommit=True):
-	log(sql)
-	async with __pool.get() as conn:
-		if not autocommit:
-			await conn.begin()
-		try:
-			async with conn.cursor(aiomysql.DictCursor) as cur: 
-			await cur.excute(sql.replace('?','%s'), args)
-			affected = cur.rowcount
-			if not autocommit:
-				await conn.commit()
-		except BaseException as e:
-			if not autocommit:
-				await conn.rollback()
-			raise
-		return affected
-		
-#¶¨ÒåÒ»¸ö¶ÔÏó£¬½«ËûºÍÊı¾İ¿âuser±í¹ØÁªÆğÀ´  --  ORM
-from orm import Model, StringField, InterField
-class User(Model):
-	__table__ = 'users'				#ÕâĞ©¶¼ÊÇÀàµÄÊôĞÔ
-	id = InterField(primary_key = True)
-	name = StringField()
-#´´½¨ÊµÀı
-user =  User(id=123, name='Lusunping')
-#´æÈëÊı¾İ¿â
-user.insert()
-#²éÑ¯ËùÓĞUser¶ÔÏó
-users = User.findAll()
 
-#¸Ã·½·¨ÓÃÀ´½«ÆäÕ¼Î»·ûÆ´½ÓÆğÀ´³É'?,?,?'µÄĞÎÊ½£¬num±êÊ¶²ÎÊıµÄ¸öÊı
+# è®°å½•æ“ä½œæ—¥å¿—
+def log(sql,args=()):
+    logging.info('SQL:%s' % sql)
+
+
+# åˆ›å»ºæ•°æ®åº“è¿æ¥æ± ï¼Œé¿å…é¢‘ç¹æ‰“å¼€æˆ–å…³é—­æ•°æ®åº“è¿æ¥
+@asyncio.coroutine
+def create_pool(loop,**kw):
+    log('create database connection poolâ€¦â€¦')
+    global __pool
+    # è°ƒç”¨ä¸€ä¸ªå­åç¨‹æ¥åˆ›å»ºå…¨å±€è¿æ¥æ± ï¼Œcreate_poolè¿”å›ä¸€ä¸ªpoolå®ä¾‹å¯¹è±¡
+    __pool= yield from aiomysql.create_pool(
+        # è¿æ¥çš„åŸºæœ¬å±æ€§è®¾ç½®
+        host=kw.get('host', 'localhost'), # æ•°æ®åº“æœåŠ¡å™¨ä½ç½®ï¼Œæœ¬åœ°
+        port=kw.get('port', 3306), # MySQLç«¯å£å·
+        user=kw['user'], # ç™»å½•ç”¨æˆ·å
+        password=kw['password'], # ç™»å½•å¯†ç 
+        db=kw['db'], # æ•°æ®åº“å
+        charset=kw.get('charset','utf8'), # è®¾ç½®è¿æ¥ä½¿ç”¨çš„ç¼–ç æ ¼å¼utf-8
+        autocommit=kw.get('autocommit',True),  # æ˜¯å¦è‡ªåŠ¨æäº¤ï¼Œé»˜è®¤false
+
+        # ä»¥ä¸‹æ˜¯å¯é€‰é¡¹è®¾ç½®
+        maxsize=kw.get('maxsize',10), # æœ€å¤§è¿æ¥æ± å¤§å°ï¼Œé»˜è®¤10
+        minsize=kw.get('minsize',1), # æœ€å°è¿æ¥æ± å¤§å°ï¼Œé»˜è®¤1
+        loop=loop # è®¾ç½®æ¶ˆæ¯å¾ªç¯
+    )
+
+# select è¿”å›ç»“æœé›†
+@asyncio.coroutine
+def select(sql, args, size=None):
+    # sql:sqlè¯­å¥
+    # args:å¡«å…¥sqlçš„å‚æ•°,listç±»å‹ï¼Œå¦‚['20111101','xue']
+    # size:å–å¤šå°‘è¡Œè®°å½•
+    log(sql, args)
+    global __pool
+    # ä»è¿æ¥æ± ä¸­è·å–ä¸€ä¸ªè¿æ¥
+    with (yield from __pool) as conn: # with...as...çš„ä½œç”¨å°±æ˜¯try...exception...
+        # æ‰“å¼€ä¸€ä¸ªDictCursorï¼Œå·²dictå½¢å¼è¿”å›ç»“æœçš„æ¸¸æ ‡
+        cur = yield from conn.cursor(aiomysql.DictCursor)
+        # sqlçš„å ä½ç¬¦ä¸º? è€ŒMySQLçš„å ä½ç¬¦ä¸º%s æ›¿æ¢
+        yield from cur.execute(sql.replace('?', '%s'), args or ())
+        # å¦‚æœsizeä¸ä¸ºç©ºï¼Œåˆ™å–ä¸€å®šé‡çš„ç»“æœé›†
+        if size:
+            rs = yield from cur.fetchmany(size)
+        else:
+            rs = yield from cur.fetchall()
+        yield from cur.close()
+        logging.info('rows returned: %s' % len(rs))
+        return rs
+
+
+
+def execute(sql, args, autocommit=True):
+    log(sql)
+    with (yield from __pool) as conn:
+    # with __pool.get() as conn:
+        if not autocommit:
+            yield from conn.begin()
+        try:
+            cur = yield from conn.cursor()
+            yield from cur.execute(sql.replace('?','%s'), args)    # é—®é¢˜å‡ºåœ¨è¿™é‡Œï¼
+            affected = cur.rowcount
+            print('affected:',affected)
+            yield from cur.close()
+            if not autocommit:
+                yield from conn.commit()
+        except BaseException as e:
+            if not autocommit:
+                yield from conn.rollback()
+            raise
+        return affected
+
+
+# è¯¥æ–¹æ³•ç”¨æ¥å°†å…¶å ä½ç¬¦æ‹¼æ¥èµ·æ¥æˆ'?,?,?'çš„å½¢å¼ï¼Œnumè¡¨ç¤ºä¸ºå‚æ•°çš„ä¸ªæ•°
 def create_args_string(num):
     L = []
     for n in range(num):
@@ -88,125 +87,150 @@ def create_args_string(num):
     return ', '.join(L)
 
 
-#¶¨ÒåFieldÀà  ¸¸Óò
-def Field(object):
-	#×Ö¶ÎÃû³Æ£¬×Ö¶ÎÀàĞÍ£¬ÊÇ·ñÎªÖ÷¼ü
-	def __init__(self, name. column_type, primary_key, default):
-		self.name = name
-		self.column_type = column_type
-		self.column_key = column_key
-		self.default = default
-	#·µ»ØÀàÃû£¨ÓòÃû£©£¬×Ö¶ÎÀàĞÍ£¬ ×Ö¶ÎÃû
-	def __str__(self):
-		return '<%s, %s:%s>' % (self.__class__.__name__, self.column_type, self.name)
-		
-		
-#Ó³ÉävarcharµÄField×ÓÀàStringField
-def StringField(Field):
+# çˆ¶åŸŸ
+class Field(object):
+    # å­—æ®µåç§°ï¼Œå­—æ®µç±»å‹ï¼Œæ˜¯å¦ä¸ºä¸»é”®ï¼Œdefaultä¸å¤ªæ‡‚
+    def __init__(self, name, column_type, primary_key, default):
+        self.name = name
+        self.column_type = column_type
+        self.primary_key = primary_key
+        self.default = default
 
-	def __init__(self, name = None, primary_key=false, default=None, ddl='varchar(100)'):
-		super().__init__(name, ddl, primary_key, default)
-		
-class BooleanField(Field):
+    # è¿”å›ç±»å(åŸŸå)ï¼Œå­—æ®µç±»å‹ï¼Œå­—æ®µå
+    def __str__(self):
+        return '<%s, %s:%s>' % (self.__class__.__name__, self.column_type, self.name)
 
-    def __init__(self, name=None, default=False):
-        super().__init__(name, 'boolean', False, default)
 
+# å­—ç¬¦ä¸²åŸŸã€‚æ˜ å°„varchar
+class StringField(Field):
+    # ddlç”¨äºå®šä¹‰æ•°æ®ç±»å‹
+    def __init__(self, name=None, primary_key=False, default=None, ddl='varchar(100)'):
+        super().__init__(name, ddl, primary_key, default) # å±æ€§æ’åˆ—é¡ºåºæŒ‰ç…§Fieldç±»ä¸­__init__çš„é¡ºåº
+
+
+# æ•´å‹åŸŸï¼Œæ˜ å°„Integer
 class IntegerField(Field):
 
     def __init__(self, name=None, primary_key=False, default=0):
         super().__init__(name, 'bigint', primary_key, default)
 
+
+# å¸ƒå°”åŸŸï¼Œæ˜ å°„boolean
+class BooleanField(Field):
+    def __init__(self,name=None,default=False):
+        super().__init__(name,'boolean',False,default)
+
+
+# æµ®ç‚¹æ•°åŸŸ
 class FloatField(Field):
+    def __init__(self,name=None,primary_key=False,default=0.0):
+        super().__init__(name,'real',primary_key,default)
 
-    def __init__(self, name=None, primary_key=False, default=0.0):
-        super().__init__(name, 'real', primary_key, default)
 
+# æ–‡æœ¬åŸŸ
 class TextField(Field):
+    def __init__(self,name=None,default=None):
+        super().__init__(name,'text',False,default)
 
-    def __init__(self, name=None, default=None):
-        super().__init__(name, 'text', False, default)
-		
-		
-		
-#½«×ÓÀàuserµÄÓ³ÉäĞÅÏ¢¶Á³öÀ´
+
+# å°†å…·ä½“çš„å­ç±»å¦‚Userçš„æ˜ å°„ä¿¡æ¯è¯»å–å‡ºæ¥
 class ModelMetaclass(type):
-	#cls : µ±Ç°×¼±¸´´½¨µÄÀà¶ÔÏó£¬Ïàµ±ÓÚself
-	#name: ÀàÃû£¬±ÈÈçuser¼Ì³ĞÁËModel,µ±Ê¹ÓÃ¸ÃÔªÀà´´½¨userÊ±£¬name=user
-	#bases:¸¸ÀàµÄÔª×é
-	#attrs:Model×ÓÀàµÄÊôĞÔºÍ·½·¨µÄ×Öµä£¬±ÈÈçuserÓĞ__table__,idµÈ£¬¾Í×÷ÎªattrsµÄkey
-	def __new__(cls, name, bases, attrs):
-		if name == 'Model':		#ÅÅ³ıModel±¾Éí
-			return type.__new__(cls, name, bases, attrs)
-		tableName = attrs.get('__table__', None) or name	#»ñÈ¡tableµÄÃû³Æ£¬ÈôÃ»ÓĞ¶¨Òå__table__ÊôĞÔ£¬½«ÀàÃû×÷Îª±íÃû
-		logging.info('found model: %s (table: %s)' % (name, tableName))
-		#»ñÈ¡ËùÓĞµÄFieldºÍÖ÷¼üÃû
-		mappings = dict()	#ÓÃ×ÖµäÀ´´æ´¢ÀàÊôĞÔÓëÊı¾İ¿â±íµÄÁĞµÄÓ³Éä¹ØÏµ
-		fields = []			#ÓÃÓÚ±£´æ³ıÖ÷¼üÒÔÍâµÄÊôĞÔ
-		primary_key = None	#ÓÃÓÚ±£´æÖ÷¼ü
-		#kÊÇÖ÷¼üÃû£¬vÊÇ¶¨ÒåÓò¡£Èçname=StringField(ddl = "varchar50")==>k=name,v=StringField(ddl="varchar50")
-		for k, v in attrs.items():
-			if isintance(v, field):
-				logging.info(' found mapping: %s' % (k, v))
-				mappings[k] = v
-				if v.primary_key:
-					#ÕÒµ½Ö÷¼ü
-					if primaryKey:	#Èç¹ûÖ÷¼üÒÑ´æÔÚ£¬±¨´í
-						raise RuntimeError('Duplicate primary key for field: %s' % k)
-					primaryKey = k
-				else:
-					fields.appenf(k)
-			if not primartKey:
-				raise RuntimeError('Primary key not found')
-			for k in mapping.keys():
-				attrs.pop(k)			#´ÓÀàÊôĞÔÖĞÉ¾³ıÒÑ¾­¼ÓÈëÁËÓ³Éä×ÖµäµÄ¼ü£¬ÒÔÃâÖØÃû
-			#½«·ÇÖ÷¼üµÄÊôĞÔ±äĞÎ£¬·ÅÈëescaped_fieldsÖĞ£¬·½±ãÔöÉ¾²é¸ÄÓï¾äµÄÊéĞ´
-			escaped_fields = list(map(lambda f:'`%s`' % f, fields))
-			attrs['__mappings__'] 	= mappings  #±£³ÖÊôĞÔºÍÁĞµÄÓ³Éä¹ØÏµ
-			attrs['__table__']		= tableName 
-			attrs['__primary_key__']= primaryKey 
-			attrs['__fields__']		= fields 
-			attrs['__select__']		= 'select `%s`, %s from `%s`' % (primaryKey,','.join(escaped_fields), tableName) 
-			attrs['__insert__']		= 'insert into `%s` (%s,`%s`) values (%s)' % (tableName,','.join(escaped_fields),primartKey,create_args_string(len(escaped_fields)+1))  
-			attrs['__update__']		= 'update `%s` set %s where `%s`=?' % (tableName,',',join(map(lambda f: '`%s`=?' % (mappings.get(f).name or f), fields)),primartKey)
-			attrs['__delete__']		= 'delete from `%s` where `%s`=?' % (tableName, primartKey)
-			return type.__name__(cls, name, bases, attrs)
-			
-	
-#¶¨ÒåModel£¬ËùÓĞORMÓ³ÉäµÄ»ùÀà ¼Ì³Ğdict£¬Í¨¹ıModelMetaclassÔªÀàÀ´¹¹ÔìÀà
+    # cls: å½“å‰å‡†å¤‡åˆ›å»ºçš„ç±»å¯¹è±¡,ç›¸å½“äºself
+    # name: ç±»å,æ¯”å¦‚Userç»§æ‰¿è‡ªModel,å½“ä½¿ç”¨è¯¥å…ƒç±»åˆ›å»ºUserç±»æ—¶,name=User
+    # bases: çˆ¶ç±»çš„å…ƒç»„
+    # attrs: Modelå­ç±»çš„å±æ€§å’Œæ–¹æ³•çš„å­—å…¸,æ¯”å¦‚Useræœ‰__table__,id,ç­‰,å°±ä½œä¸ºattrsçš„keys
+    def __new__(cls, name, bases, attrs):
+        # æ’é™¤Modelç±»æœ¬èº«:
+        if name == 'Model':
+            return type.__new__(cls, name, bases, attrs)
+        # è·å–tableåç§°ï¼Œè‹¥æ²¡æœ‰å®šä¹‰__table__å±æ€§,å°†ç±»åä½œä¸ºè¡¨å.æ­¤å¤„æ³¨æ„ or çš„ç”¨æ³•:
+        tableName = attrs.get('__table__', None) or name
+        logging.info('found model: %s (table: %s)' % (name, tableName))
+        # è·å–æ‰€æœ‰çš„Fieldå’Œä¸»é”®å:
+        mappings = dict()    # ç”¨å­—å…¸æ¥å­˜å‚¨ç±»å±æ€§ä¸æ•°æ®åº“è¡¨çš„åˆ—çš„æ˜ å°„å…³ç³»
+        fields = []          # ç”¨äºä¿å­˜é™¤ä¸»é”®ä»¥å¤–çš„å±æ€§
+        primaryKey = None    # ç”¨äºä¿å­˜ä¸»é”®
+        # kæ˜¯å±æ€§åï¼Œvæ˜¯å®šä¹‰åŸŸã€‚å¦‚name=StringField(ddl="varchar50"),k=name,v=StringField(ddl="varchar50")
+        for k, v in attrs.items():
+            if isinstance(v, Field):
+                logging.info('  found mapping: %s ==> %s' % (k, v))
+                mappings[k] = v
+                # æ‰¾åˆ°ä¸»é”®:
+                if v.primary_key:
+                    # ä¸»é”®å·²å­˜åœ¨ï¼ŒæŠ¥é”™ï¼Œä¸å¯èƒ½ä¿©ä¸»é”®
+                    if primaryKey:
+                        raise RuntimeError('Duplicate primary key for field: %s' % k)
+                    primaryKey = k
+                else:
+                    fields.append(k)
+        # æ²¡æ‰¾åˆ°ä¸»é”®æŠ¥é”™
+        if not primaryKey:
+            raise RuntimeError('Primary key not found.')
+        # ä»ç±»å±æ€§ä¸­åˆ é™¤å·²ç»åŠ å…¥äº†æ˜ å°„å­—å…¸çš„é”®ï¼Œä»¥å…é‡å
+        for k in mappings.keys():
+            attrs.pop(k)
+        # å°†éä¸»é”®çš„å±æ€§å˜å½¢,æ”¾å…¥escaped_fieldsä¸­,æ–¹ä¾¿å¢åˆ æ”¹æŸ¥è¯­å¥çš„ä¹¦å†™
+        escaped_fields = list(map(lambda f: '`%s`' % f, fields))
+        attrs['__mappings__'] = mappings # ä¿å­˜å±æ€§å’Œåˆ—çš„æ˜ å°„å…³ç³»
+        attrs['__table__'] = tableName
+        attrs['__primary_key__'] = primaryKey # ä¸»é”®å±æ€§å
+        attrs['__fields__'] = fields # é™¤ä¸»é”®å¤–çš„å±æ€§å
+        # æ„é€ é»˜è®¤çš„SELECT, INSERT, UPDATEå’ŒDELETEè¯­å¥:
+        attrs['__select__'] = 'select `%s`, %s from `%s`' % (primaryKey, ', '.join(escaped_fields), tableName)
+        # attrs['__insert__'] = 'insert into `%s` (%s, `%s`) values (%s)' % (tableName, ', '.join(escaped_fields), primaryKey, create_args_string(len(escaped_fields) + 1))
+        attrs['__insert__'] = 'insert into `%s` (%s, `%s`) values (%s)' % (tableName, ', '.join(escaped_fields), primaryKey, create_args_string(len(escaped_fields) + 1))
+        attrs['__update__'] = 'update `%s` set %s where `%s`=?' % (tableName, ', '.join(map(lambda f: '`%s`=?' % (mappings.get(f).name or f), fields)), primaryKey)
+        attrs['__delete__'] = 'delete from `%s` where `%s`=?' % (tableName, primaryKey)
+        return type.__new__(cls, name, bases, attrs)
+
+
+# æ‰€æœ‰ORMæ˜ å°„çš„åŸºç±»ï¼Œç»§æ‰¿è‡ªdictï¼Œé€šè¿‡ModelMetaclasså…ƒç±»æ¥æ„é€ ç±»
 class Model(dict, metaclass=ModelMetaclass):
-	
-	#³õÊ¼»¯º¯Êı£¬µ÷ÓÃ¸¸ÀàdictµÄ·½·¨
-	def __init__(self, **kw):
-		super(Model, self).__init__(**kw)
-	
-	#Ôö¼Ó__getattr__·½·¨£¬¿ÉÍ¨¹ıa.bµÄ·½Ê½»ñÈ¡ÊôĞÔ£¬Ê¹»ñÈ¡ÊôĞÔ¸ü·½±ã£¬
-	def __getattr__(self, key):
-		try:
-			return self[key]
-		except KeyError:
-			raise AttributeError(r"'Model' object has no attribute '%s'" %key)
-			
-	def __setattr__(self, key, value):
-		self[key] = value
-		
-	def getValue(self, key):
-		return getattr(self, key, None)
-		
-	def getValueOrDefault(self, key):
-		value =getattr(self, key, None)
-		if value is None:
-			field = self.__mapping__[key]
-			if field default is not None:
-				value = field.default() if callable(field.default) else field.default
-				logging.debug('using default value for %s:%s' % (key, str(value)))
-				setattr(self, key, value)
-			return value
-	
-	@classmethod
-    async def findAll(cls, where=None, args=None, **kw):
-        ' find objects by where clause. '
+
+    # åˆå§‹åŒ–å‡½æ•°,è°ƒç”¨å…¶çˆ¶ç±»(dict)çš„æ–¹æ³•
+    def __init__(self, **kw):
+        super(Model, self).__init__(**kw)
+
+    # å¢åŠ __getattr__æ–¹æ³•,ä½¿è·å–å±æ€§æ›´æ–¹ä¾¿,å³å¯é€šè¿‡"a.b"çš„å½¢å¼
+    def __getattr__(self, key):
+        try:
+            return self[key]
+        except KeyError:
+            raise AttributeError(r"'Model' object has no attribute '%s'" % key)
+
+    # å¢åŠ __setattr__æ–¹æ³•,ä½¿è®¾ç½®å±æ€§æ›´æ–¹ä¾¿,å¯é€šè¿‡"a.b=c"çš„å½¢å¼
+    def __setattr__(self, key, value):
+        self[key] = value
+
+    # é€šè¿‡é”®å–å€¼,è‹¥å€¼ä¸å­˜åœ¨,è¿”å›None
+    def getValue(self, key):
+        return getattr(self, key, None)
+
+    # é€šè¿‡é”®å–å€¼,è‹¥å€¼ä¸å­˜åœ¨,åˆ™è¿”å›é»˜è®¤å€¼
+    # è¿™æ‹›å¾ˆå¦™ï¼
+    def getValueOrDefault(self, key):
+        value = getattr(self, key, None)
+        if value is None:
+            field = self.__mappings__[key]  # fieldæ˜¯ä¸€ä¸ªå®šä¹‰åŸŸ!æ¯”å¦‚FloatField
+            if field.default is not None:
+                # idçš„StringField.default=next_id,å› æ­¤è°ƒç”¨è¯¥å‡½æ•°ç”Ÿæˆç‹¬ç«‹idã€‚å®ç°è‡ªå¢
+                # FloatFiled.default=time.timeæ•°,å› æ­¤è°ƒç”¨time.timeå‡½æ•°è¿”å›å½“å‰æ—¶é—´ã€‚å½“å‰æ—¶é—´åšid
+                # æ™®é€šå±æ€§çš„StringFieldé»˜è®¤ä¸ºNone,å› æ­¤è¿˜æ˜¯è¿”å›None
+                value = field.default() if callable(field.default) else field.default
+                logging.debug('using default value for %s: %s' % (key, str(value)))
+                # é€šè¿‡defaultå–åˆ°å€¼ä¹‹åå†å°†å…¶ä½œä¸ºå½“å‰å€¼
+                setattr(self, key, value)
+        return value
+
+    # classmethodï¼Œè£…é¥°å™¨ï¼Œå®šä¹‰è¯¥æ–¹æ³•ä¸ºç±»æ–¹æ³•ï¼Œå¿…å¤‡å‚æ•°ä¸ºcls(ç±»ä¼¼äºself);staticmethod,å¯ä»¥ä¸ä¼ ä»»ä½•å‚æ•°;å…¶ä»–çš„æ–¹æ³•ï¼Œå¿…å¤‡å‚æ•°self
+    @classmethod
+    @asyncio.coroutine
+    def findAll(cls, where=None, args=None, **kw):
+        # clsè¡¨ç¤ºå½“å‰ç±»æˆ–ç±»çš„å¯¹è±¡å¯è°ƒç”¨è¯¥æ–¹æ³•ï¼Œwhereè¡¨ç¤ºsqlä¸­çš„whereï¼Œargsè®°å½•ä¸‹æ‰€æœ‰çš„éœ€è¦ç”¨å ä½ç¬¦'?'çš„å‚æ•°
+        # **kwæ˜¯ä¸€ä¸ªtupleï¼Œé‡Œé¢æœ‰å¤šä¸ªdicté”®å€¼å¯¹ï¼Œå¦‚{'name',Mary} å¤šä¸ºç­›é€‰æ¡ä»¶
         sql = [cls.__select__]
+        # æˆ‘ä»¬å®šä¹‰çš„é»˜è®¤çš„selectè¯­å¥å¹¶ä¸åŒ…æ‹¬whereå­å¥
+        # å› æ­¤è‹¥æŒ‡å®šæœ‰where,éœ€è¦åœ¨selectè¯­å¥ä¸­è¿½åŠ å…³é”®å­—
         if where:
             sql.append('where')
             sql.append(where)
@@ -219,107 +243,75 @@ class Model(dict, metaclass=ModelMetaclass):
         limit = kw.get('limit', None)
         if limit is not None:
             sql.append('limit')
-            if isinstance(limit, int):
+            if isinstance(limit, int):   # å¦‚æœæ˜¯ä¸€ä¸ªæ•´å‹æ•°ï¼Œç›´æ¥åœ¨sqlè¯­å¥çš„limitå­—æ®µåæ·»åŠ å ä½ç¬¦'?'
                 sql.append('?')
                 args.append(limit)
-            elif isinstance(limit, tuple) and len(limit) == 2:
+            elif isinstance(limit, tuple) and len(limit) == 2:  # limit æœ‰ä¸¤ä¸ªå‚æ•°
                 sql.append('?, ?')
                 args.extend(limit)
             else:
-                raise ValueError('Invalid limit value: %s' % str(limit))
-        rs = await select(' '.join(sql), args)
-        return [cls(**r) for r in rs]
+                raise ValueError('Invalid limit value: %s' % str(limit))  # %sè¾“å‡ºåªèƒ½æ˜¯strç±»å‹
+        # ''.join(list/tuple/dict)   "|".join(['a','b','c']) -> 'a|b|c'
+        rs = yield from select(' '.join(sql), args)  # è½¬listä¸ºstr.
+        return [cls(**r) for r in rs]  # cls(**r)è°ƒç”¨æœ¬ç±»çš„__init__(æ–¹æ³•)
 
+
+
+    # æŸ¥æ‰¾æŸåˆ—
     @classmethod
-    async def findNumber(cls, selectField, where=None, args=None):
-        ' find number by select and where. '
-        sql = ['select %s _num_ from `%s`' % (selectField, cls.__table__)]
+    @asyncio.coroutine
+    def findNumber(cls,selectField,where=None,args=None):
+        sql = ['select %s _num_ from `%s`' % (selectField,cls.__table__)]
         if where:
             sql.append('where')
             sql.append(where)
-        rs = await select(' '.join(sql), args, 1)
+        rs = yield from select(''.join(sql),args,1)   # Q: 1æ˜¯ä»€ä¹ˆæ„æ€ï¼Ÿsize=1?ä¸ºä»€ä¹ˆæŒ‰åˆ—æŸ¥æ‰¾æŒ‡å–1ä¸ªï¼Ÿ
         if len(rs) == 0:
             return None
         return rs[0]['_num_']
 
+    # æŒ‰ä¸»é”®æŸ¥æ‰¾
     @classmethod
-    async def find(cls, pk):
-        ' find object by primary key. '
-        rs = await select('%s where `%s`=?' % (cls.__select__, cls.__primary_key__), [pk], 1)
+    @asyncio.coroutine
+    def find(cls, pk):
+        rs = yield from select('%s where `%s`=?' % (cls.__select__, cls.__primary_key__), [pk], 1)
         if len(rs) == 0:
             return None
+        # **kwè¡¨ç¤ºå…³é”®å­—å‚æ•°
+        # æ³¨æ„,æˆ‘ä»¬åœ¨selectå‡½æ•°ä¸­,æ‰“å¼€çš„æ˜¯DictCursor,å®ƒä¼šä»¥dictçš„å½¢å¼è¿”å›ç»“æœ
         return cls(**rs[0])
 
-    async def save(self):
+    # æ’å…¥
+    @asyncio.coroutine
+    def save(self):
+        # æˆ‘ä»¬åœ¨å®šä¹‰__insert__æ—¶,å°†ä¸»é”®æ”¾åœ¨äº†æœ«å°¾.å› ä¸ºå±æ€§ä¸å€¼è¦ä¸€ä¸€å¯¹åº”,å› æ­¤é€šè¿‡appendçš„æ–¹å¼å°†ä¸»é”®åŠ åœ¨æœ€å
+        # ä½¿ç”¨getValueOrDefaultæ–¹æ³•,å¯ä»¥è°ƒç”¨time.timeè¿™æ ·çš„å‡½æ•°æ¥è·å–å€¼
+        print("è¿›å…¥save")
         args = list(map(self.getValueOrDefault, self.__fields__))
         args.append(self.getValueOrDefault(self.__primary_key__))
-        rows = await execute(self.__insert__, args)
+        rows = yield from execute(self.__insert__, args)
+        print('è¿”å›è¡Œæ•°ï¼š',rows)
         if rows != 1:
             logging.warn('failed to insert record: affected rows: %s' % rows)
 
-    async def update(self):
+    # æ›´æ–°
+    @asyncio.coroutine
+    def update(self):
+        # åƒtime.time,next_idä¹‹ç±»çš„å‡½æ•°åœ¨æ’å…¥çš„æ—¶å€™å·²ç»è°ƒç”¨è¿‡äº†,æ²¡æœ‰å…¶ä»–éœ€è¦å®æ—¶æ›´æ–°çš„å€¼,å› æ­¤è°ƒç”¨getValue
         args = list(map(self.getValue, self.__fields__))
         args.append(self.getValue(self.__primary_key__))
-        rows = await execute(self.__update__, args)
+        rows = yield from execute(self.__update__, args)
+        print('æ›´æ–°æˆåŠŸï¼')
         if rows != 1:
             logging.warn('failed to update by primary key: affected rows: %s' % rows)
 
-    async def remove(self):
-        args = [self.getValue(self.__primary_key__)]
-        rows = await execute(self.__delete__, args)
+    # åˆ é™¤
+    @asyncio.coroutine
+    def remove(self):
+        args = [self.getValue(self.__primary_key__)] # å–å¾—ä¸»é”®ä½œä¸ºå‚æ•°
+        rows = yield from execute(self.__delete__, args)
+        print('åˆ é™¤æˆåŠŸï¼')
         if rows != 1:
             logging.warn('failed to remove by primary key: affected rows: %s' % rows)
-			
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
+
